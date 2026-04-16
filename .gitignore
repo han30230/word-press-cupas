@@ -1,0 +1,16 @@
+node_modules/
+dist/
+release/
+dist-electron/
+electron/publish-bundle.cjs
+.env
+logs/*.log
+!logs/.gitkeep
+output/*.html
+output/reports/*
+!output/reports/.gitkeep
+!output/.gitkeep
+data/published-state.json
+data/schedule-runs.json
+data/app-config.json
+*.tsbuildinfo

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <title>쿠팡 파트너스 자동 발행</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div class="brand-text">
+            <h1>쿠팡 파트너스 자동 발행</h1>
+            <p class="tagline">쿠팡 검색 → GPT 글 작성 → WordPress 업로드</p>
+          </div>
+        </div>
+        <span class="pill">Windows · 로컬 실행</span>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="panel panel--accent">
+        <div class="panel-head">
+          <span class="step">1</span>
+          <div>
+            <h2>지금 발행</h2>
+            <p class="panel-desc">활성화된 계정 중 하나를 고른 뒤 실행합니다. 계정·키워드·로그 경로는 아래 설정에서 바꿀 수 있습니다.</p>
+          </div>
+        </div>
+        <div class="field-row">
+          <label class="field-label" for="account-run">계정</label>
+          <select id="account-run" class="field-select" aria-label="발행할 계정"></select>
+        </div>
+        <button type="button" id="btn-run" class="btn-main" aria-busy="false">
+          <span class="btn-main__icon" aria-hidden="true">▶</span>
+          <span class="btn-main__label">지금 발행 실행</span>
+        </button>
+        <p id="run-status" class="status-line" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <span class="step">2</span>
+          <div>
+            <h2>실행 로그 보기</h2>
+            <p class="panel-desc">선택한 계정의 로그 파일 끝부분을 여기서 바로 확인합니다.</p>
+          </div>
+        </div>
+        <div class="field-row">
+          <label class="field-label" for="account-log">로그 계정</label>
+          <select id="account-log" class="field-select" aria-label="로그를 볼 계정"></select>
+        </div>
+        <div class="log-toolbar">
+          <button type="button" id="btn-refresh-log" class="btn-ghost">새로 고침</button>
+        </div>
+        <pre id="log-view" class="log-view" aria-live="polite"></pre>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <span class="step step--muted">3</span>
+          <div>
+            <h2>기록 · 폴더</h2>
+            <p class="panel-desc">발행 요약 화면과 저장된 HTML, 로그 파일 위치로 바로 이동합니다.</p>
+          </div>
+        </div>
+        <div class="action-grid">
+          <button type="button" id="btn-dashboard" class="tile">
+            <span class="tile__ic" aria-hidden="true">📊</span>
+            <span class="tile__tx">발행 기록</span>
+            <span class="tile__sub">대시보드 HTML</span>
+          </button>
+          <button type="button" id="btn-output" class="tile">
+            <span class="tile__ic" aria-hidden="true">📁</span>
+            <span class="tile__tx">output</span>
+            <span class="tile__sub">생성된 글 HTML</span>
+          </button>
+          <button type="button" id="btn-logs" class="tile">
+            <span class="tile__ic" aria-hidden="true">📄</span>
+            <span class="tile__tx">logs</span>
+            <span class="tile__sub">실행 로그</span>
+          </button>
+          <button type="button" id="btn-folder" class="tile tile--ghost">
+            <span class="tile__ic" aria-hidden="true">⚙</span>
+            <span class="tile__tx">프로그램 폴더</span>
+            <span class="tile__sub">.env 위치</span>
+          </button>
+        </div>
+        <div class="meta-box">
+          <p class="meta-label">스케줄 · 작업 경로</p>
+          <p id="schedule-info" class="meta-text"></p>
+        </div>
+      </section>
+
+      <details class="panel panel--config">
+        <summary class="config-summary">
+          <span class="step step--muted">4</span>
+          <span>계정·예약 설정 (data/app-config.json)</span>
+        </summary>
+        <div class="config-body">
+          <p class="panel-desc">
+            여러 WordPress 계정, 예약 시각(HH:mm), 자동화 기간, 하루 최대 횟수를 여기서 편집합니다. 아래에서 계정을 추가하면 키워드·발행상태·출력·로그 경로가 계정별로 새 파일로 잡힙니다.
+          </p>
+          <div class="add-account-row">
+            <label class="field-label" for="new-account-name">새 계정 이름</label>
+            <div class="add-account-actions">
+              <input
+                type="text"
+                id="new-account-name"
+                class="field-input"
+                placeholder="예: 블로그 B"
+                maxlength="80"
+                autocomplete="off"
+              />
+              <button type="button" id="btn-add-account" class="btn-secondary">
+                계정 추가 후 저장
+              </button>
+            </div>
+            <p class="add-account-hint">추가 시 <code>data/app-config.json</code>에 바로 저장됩니다. 이후 WP 주소·계정·앱 비밀번호를 JSON에서 채우세요.</p>
+          </div>
+          <textarea id="config-json" class="config-json" spellcheck="false" rows="18" aria-label="app-config JSON"></textarea>
+          <div class="config-actions">
+            <button type="button" id="btn-reload-config" class="btn-ghost">불러오기</button>
+            <button type="button" id="btn-save-config" class="btn-secondary">저장</button>
+          </div>
+          <p id="config-status" class="status-line" role="status"></p>
+        </div>
+      </details>
+
+      <section class="panel panel--note">
+        <h2 class="note-title">자동 실행</h2>
+        <ul class="note-list">
+          <li>이 창을 닫으면 <strong>예약 발행도 함께 종료</strong>됩니다. PC를 켜 둔 채 자동으로 돌리려면 이 프로그램을 계속 실행해 두세요.</li>
+          <li>예약은 <strong>매 분</strong> 검사하며, 각 계정에 설정한 <strong>로컬 시각(HH:mm)</strong>에 맞춰 실행됩니다. 기간·하루 횟수는 설정 JSON을 따릅니다.</li>
+          <li>창 없이 돌리려면 <code>npm run schedule</code> 또는 작업 스케줄러에 <code>--once</code> 로 한 번씩 실행하는 방식을 쓸 수 있습니다.</li>
+        </ul>
+      </section>
+
+      <details class="faq">
+        <summary>이 프로그램은 어떤 exe인가요?</summary>
+        <div class="faq-body">
+          <p class="faq-p">이 파일은 <strong>Windows에서 더블클릭으로 실행되는 일반 실행 파일(.exe)</strong>입니다. 다른 프로그램처럼 배포·설치하면 됩니다.</p>
+          <p class="faq-p">화면은 웹 기술로 만들어진 창이지만, 배포 형태는 일반 데스크톱 앱과 같습니다. (개발자용 이름: Electron)</p>
+        </div>
+      </details>
+    </main>
+
+    <footer class="foot">
+      <p class="foot-paths">
+        설정 <code>data/app-config.json</code>
+        · 요약 <code>output/reports/dashboard.html</code>
+      </p>
+    </footer>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>

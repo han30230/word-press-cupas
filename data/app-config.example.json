@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "global": {
+    "coupangAccessKey": "YOUR_COUPANG_ACCESS_KEY",
+    "coupangSecretKey": "YOUR_COUPANG_SECRET_KEY",
+    "coupangSubId": "my-channel",
+    "openaiApiKey": "YOUR_OPENAI_API_KEY",
+    "openaiModel": "gpt-4o-mini",
+    "minProducts": 3,
+    "maxProducts": 5
+  },
+  "accounts": [
+    {
+      "id": "blog-a",
+      "name": "블로그 A",
+      "enabled": true,
+      "topicSource": "keywords",
+      "wpBaseUrl": "https://example.com",
+      "wpUsername": "user",
+      "wpApplicationPassword": "xxxx xxxx xxxx xxxx",
+      "wpcomClientId": "",
+      "wpcomClientSecret": "",
+      "wpPostStatus": "draft",
+      "keywordsFile": "./data/keywords-blog-a.json",
+      "publishedStateFile": "./data/published-state-blog-a.json",
+      "outputDir": "./output/blog-a",
+      "logFile": "./logs/blog-a.log",
+      "schedule": {
+        "enabled": true,
+        "times": ["09:00", "15:00"],
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "maxRunsPerDay": 2
+      }
+    },
+    {
+      "id": "blog-b",
+      "name": "블로그 B",
+      "enabled": true,
+      "topicSource": "goldbox",
+      "wpBaseUrl": "https://other.com",
+      "wpUsername": "user2",
+      "wpApplicationPassword": "yyyy yyyy yyyy yyyy",
+      "wpcomClientId": "",
+      "wpcomClientSecret": "",
+      "wpPostStatus": "publish",
+      "keywordsFile": "./data/keywords-blog-b.json",
+      "publishedStateFile": "./data/published-state-blog-b.json",
+      "outputDir": "./output/blog-b",
+      "logFile": "./logs/blog-b.log",
+      "schedule": {
+        "enabled": true,
+        "times": ["12:00", "21:00"],
+        "startDate": "2026-01-01",
+        "endDate": "2026-12-31",
+        "maxRunsPerDay": 2
+      }
+    }
+  ]
+}

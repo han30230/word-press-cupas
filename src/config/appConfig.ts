@@ -73,14 +73,28 @@ function emptyGlobal(): GlobalConfig {
 }
 
 function defaultSchedule(): ScheduleConfig {
-  const today = new Date();
-  const y = today.getFullYear();
   return {
     enabled: true,
-    times: ["09:00", "15:00", "21:00"],
-    startDate: `${y}-01-01`,
-    endDate: `${y + 1}-12-31`,
-    maxRunsPerDay: 3,
+    times: [
+      "08:00",
+      "09:00",
+      "10:00",
+      "11:00",
+      "12:00",
+      "13:00",
+      "14:00",
+      "15:00",
+      "16:00",
+      "17:00",
+      "18:00",
+      "19:00",
+      "20:00",
+      "21:00",
+      "22:00",
+    ],
+    startDate: "2020-01-01",
+    endDate: "2035-12-31",
+    maxRunsPerDay: 500,
   };
 }
 
@@ -158,7 +172,9 @@ function normalizeAccount(a: Partial<AccountConfig>, idx: number): AccountConfig
       startDate: String(sch?.startDate ?? defaultSchedule().startDate),
       endDate: String(sch?.endDate ?? defaultSchedule().endDate),
       maxRunsPerDay:
-        typeof sch?.maxRunsPerDay === "number" && sch.maxRunsPerDay >= 1 ? sch.maxRunsPerDay : 3,
+        typeof sch?.maxRunsPerDay === "number" && sch.maxRunsPerDay >= 1
+          ? sch.maxRunsPerDay
+          : defaultSchedule().maxRunsPerDay,
     },
   };
 }

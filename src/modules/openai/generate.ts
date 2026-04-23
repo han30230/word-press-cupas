@@ -32,6 +32,22 @@ function escapeHtmlAttr(s: string): string {
     .replace(/</g, "&lt;");
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** 게이트웨이/과부하/레이트리밋 등 일시적 오류 — 재시도 대상 */
+function isRetryableOpenAiRequestError(e: unknown): boolean {
+  if (!axios.isAxiosError(e)) return false;
+  const status = e.response?.status;
+  if (status === 429) return true;
+  if (status === 502 || status === 503 || status === 504) return true;
+  const code = e.code;
+  if (code === "ECONNRESET" || code === "ETIMEDOUT" || code === "ECONNABORTED") return true;
+  if (e.message.includes("timeout")) return true;
+  return false;
+}
+
 /**
  * 모델이 <img>를 빼먹거나, 프롬프트에 빈 productImage만 넘어간 경우에도
  * 쿠팡에서 받은 대표 상품 이미지 URL이 있으면 본문에 한 장 넣습니다.
@@ -70,30 +86,57 @@ export async function generateArticleHtml(params: {
       { role: "system" as const, content: ARTICLE_SYSTEM_INSTRUCTION },
       { role: "user" as const, content: userPrompt },
     ],
-    temperature: 0.55,
+    temperature: 0.58,
+    /** 장문 HTML(매거진형 본문) 생성 시 잘림 방지 — articlePrompt 분량(만 자 단위 텍스트)에 맞춤 */
+    max_tokens: 14000,
     response_format: { type: "json_object" as const },
   };
 
-  let res;
-  try {
-    res = await axios.post<OpenAIChatCompletionResponse>(
-      "https://api.openai.com/v1/chat/completions",
-      body,
-      {
-        headers: {
-          Authorization: `Bearer ${params.apiKey}`,
-          "Content-Type": "application/json",
+  const maxAttempts = 5;
+  let res: { data: OpenAIChatCompletionResponse } | undefined;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      res = await axios.post<OpenAIChatCompletionResponse>(
+        "https://api.openai.com/v1/chat/completions",
+        body,
+        {
+          headers: {
+            Authorization: `Bearer ${params.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          /** 긴 JSON·HTML(만 자 단위) 생성 시 API 응답이 2분을 넘기는 경우가 있어 여유 있게 둡니다. */
+          timeout: 300_000,
         },
-        timeout: 120_000,
-      },
-    );
-  } catch (e: unknown) {
-    if (axios.isAxiosError(e) && e.response?.data) {
-      const data = e.response.data as { error?: { message?: string } };
-      const msg = data.error?.message ?? e.message;
-      throw new Error(`OpenAI API 오류: ${msg}`);
+      );
+      break;
+    } catch (e: unknown) {
+      const retryable = isRetryableOpenAiRequestError(e);
+      const willRetry = retryable && attempt < maxAttempts;
+      if (willRetry) {
+        const waitMs = Math.min(2000 * 2 ** (attempt - 1), 30_000);
+        await sleep(waitMs);
+        continue;
+      }
+      if (axios.isAxiosError(e)) {
+        const status = e.response?.status;
+        const data = e.response?.data as { error?: { message?: string } } | undefined;
+        const apiMsg = data?.error?.message;
+        if (apiMsg) {
+          throw new Error(`OpenAI API 오류: ${apiMsg}`);
+        }
+        if (status) {
+          throw new Error(
+            `OpenAI API 오류: Request failed with status code ${status}${status === 502 ? " (서버 일시 오류 — 잠시 뒤 다시 시도해 주세요)" : ""}`,
+          );
+        }
+      }
+      throw e instanceof Error ? e : new Error(String(e));
     }
-    throw e instanceof Error ? e : new Error(String(e));
+  }
+
+  if (!res) {
+    throw new Error("OpenAI 요청이 반복 실패했습니다.");
   }
 
   const err = res.data.error;

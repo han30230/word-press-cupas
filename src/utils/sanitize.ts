@@ -1,24 +1,17 @@
 /**
- * WordPress에 넣기 전 최소한의 HTML 정리.
- * - script/style 제거
- * - on* 이벤트 속성 제거 (img onerror는 예외적으로 복구)
+ * WordPress 본문에 넣기 전 HTML 정리.
+ * - `<style>…</style>` 제거(WordPress.com 등에서 본문 `<style>`이 불안정하거나 내용이 그대로 노출되는 경우 대비)
+ * - `<script>` 제거
+ * - `on*` 이벤트 제거 — 업로드 직전 `ensureImgTagAttributesInPost` 등으로 img `onerror` 재부착 권장
  */
+export function stripStyleTagsFromHtml(html: string): string {
+  return html.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "").trim();
+}
+
 export function sanitizePostHtml(html: string): string {
-  let out = html;
+  let out = stripStyleTagsFromHtml(html);
   out = out.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-  out = out.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "");
   out = out.replace(/\son\w+\s*=\s*(["'])[\s\S]*?\1/gi, "");
   out = out.replace(/\son\w+\s*=\s*[^\s>]+/gi, "");
-
-  // img에 onerror 복구 (요구사항)
-  out = out.replace(/<img\b([^>]*?)>/gi, (full, inner: string) => {
-    if (/\sonerror\s*=/i.test(inner)) {
-      return `<img${inner}>`;
-    }
-    const trimmed = inner.trimEnd();
-    const sep = trimmed.length ? " " : "";
-    return `<img${trimmed}${sep}onerror="this.style.display='none'">`;
-  });
-
   return out.trim();
 }

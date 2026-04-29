@@ -5,12 +5,18 @@ import {
   buildArticleUserPrompt,
   type ArticlePromptInput,
 } from "./prompts/articlePrompt.js";
-import { sanitizePostHtml } from "../../utils/sanitize.js";
+import { getArticleHtmlQualityIssues } from "./articleHtmlQuality.js";
+import { stripCodeFencesFromHtmlString } from "./articlePostProcess.js";
+import { stripStyleTagsFromHtml } from "../../utils/sanitize.js";
+import { isArticleInlineStylesEnabled } from "../../utils/articleStylePolicy.js";
+import { embedInlineArticleVisualStyles } from "../wordpress/inlineArticleStyles.js";
 
 export interface GeneratedArticle {
   title: string;
   excerpt: string;
   html: string;
+  /** 휴리스틱 품질 경고(재생성·수정 판단용). 없으면 빈 배열. */
+  qualityWarnings: string[];
 }
 
 interface OpenAIChatCompletionResponse {
@@ -23,13 +29,6 @@ function extractJsonText(text: string): string {
   const fence = /^```(?:json)?\s*([\s\S]*?)```$/im.exec(trimmed);
   if (fence) return fence[1].trim();
   return trimmed;
-}
-
-function escapeHtmlAttr(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;");
 }
 
 function sleep(ms: number): Promise<void> {
@@ -46,23 +45,6 @@ function isRetryableOpenAiRequestError(e: unknown): boolean {
   if (code === "ECONNRESET" || code === "ETIMEDOUT" || code === "ECONNABORTED") return true;
   if (e.message.includes("timeout")) return true;
   return false;
-}
-
-/**
- * 모델이 <img>를 빼먹거나, 프롬프트에 빈 productImage만 넘어간 경우에도
- * 쿠팡에서 받은 대표 상품 이미지 URL이 있으면 본문에 한 장 넣습니다.
- */
-function ensureRepresentativeProductImage(html: string, rep: NormalizedProduct): string {
-  const url = rep.productImage.trim();
-  if (!url || !/^https?:\/\//i.test(url)) return html;
-  if (/<img\b/i.test(html)) return html;
-  const alt = escapeHtmlAttr(rep.productName || "상품");
-  const src = escapeHtmlAttr(url);
-  const block = `<p class="hero-img"><img src="${src}" alt="${alt}" loading="lazy" decoding="async" /></p>`;
-  return html.replace(
-    /(<div\b[^>]*\bclass\s*=\s*["']post["'][^>]*>)/i,
-    `$1${block}`,
-  );
 }
 
 export async function generateArticleHtml(params: {
@@ -88,7 +70,8 @@ export async function generateArticleHtml(params: {
     ],
     temperature: 0.58,
     /** 장문 HTML(매거진형 본문) 생성 시 잘림 방지 — articlePrompt 분량(만 자 단위 텍스트)에 맞춤 */
-    max_tokens: 14000,
+    /** 사용 중인 모델의 completion 상한(예: 16384)을 넘지 않도록 둡니다. */
+    max_tokens: 16384,
     response_format: { type: "json_object" as const },
   };
 
@@ -174,12 +157,28 @@ export async function generateArticleHtml(params: {
     throw new Error('본문 HTML은 <div class="post"> 를 포함해야 합니다.');
   }
 
-  const htmlWithImage = ensureRepresentativeProductImage(html, params.representative);
-  const safeHtml = sanitizePostHtml(htmlWithImage);
+  let h = html.trim();
+  h = stripCodeFencesFromHtmlString(h);
+  h = stripStyleTagsFromHtml(h);
+  if (isArticleInlineStylesEnabled()) {
+    h = embedInlineArticleVisualStyles(h);
+  }
+
+  const qualityWarnings = getArticleHtmlQualityIssues(h, {
+    productUrl: params.representative.productUrl,
+    minChars: 5200,
+  });
+  if (qualityWarnings.length > 0) {
+    console.warn(
+      "[generateArticleHtml] 품질 휴리스틱 이슈(재생성·수정 검토):",
+      qualityWarnings,
+    );
+  }
 
   return {
     title,
     excerpt: excerpt || title.slice(0, 160),
-    html: safeHtml,
+    html: h,
+    qualityWarnings,
   };
 }

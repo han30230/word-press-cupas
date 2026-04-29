@@ -8,6 +8,8 @@ export interface WpPostPayload {
   content: string;
   excerpt: string;
   status: WpPostStatus;
+  /** 미디어 라이브러리에 올린 이미지 id(있을 때만 대표이미지로 설정) */
+  featuredMediaId?: number;
 }
 
 export interface WpPostCreated {
@@ -72,13 +74,28 @@ export async function createWordPressPost(
   const title = payload.title.trim();
   const slug = buildUniqueSlug(title, keyword);
 
-  const body = {
+  const body: {
+    title: string;
+    slug: string;
+    content: string;
+    excerpt: string;
+    status: WpPostStatus;
+    featured_media?: number;
+  } = {
     title,
     slug,
     content: payload.content,
     excerpt: payload.excerpt,
     status: payload.status,
   };
+  if (
+    payload.featuredMediaId !== undefined &&
+    payload.featuredMediaId !== null &&
+    Number.isFinite(payload.featuredMediaId) &&
+    payload.featuredMediaId > 0
+  ) {
+    body.featured_media = Math.trunc(payload.featuredMediaId);
+  }
 
   try {
     const res = await client.post<WpPostResponse>("/posts", body);

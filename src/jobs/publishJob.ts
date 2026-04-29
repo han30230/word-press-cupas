@@ -13,6 +13,7 @@ import {
   searchProductsByKeyword,
 } from "../modules/coupang/search.js";
 import { generateArticleHtml } from "../modules/openai/generate.js";
+import { prepareWordPressPostContent } from "../modules/openai/articlePostProcess.js";
 import {
   appendPublication,
   ensureStateFileDir,
@@ -22,6 +23,7 @@ import {
   saveState,
 } from "../modules/keywords/store.js";
 import { createWordPressHttpClient } from "../modules/wordpress/createClient.js";
+import { uploadProductImagesAndReplaceInHtml } from "../modules/wordpress/media.js";
 import { createWordPressPost } from "../modules/wordpress/upload.js";
 import { appRootDir } from "../utils/appRoot.js";
 import { createLogger } from "../utils/logger.js";
@@ -196,6 +198,9 @@ export async function runPublishJob(
       products,
       representative,
     });
+    if (article.qualityWarnings.length > 0) {
+      logger.warn("생성 HTML 품질 휴리스틱(필요 시 재생성·수정)", article.qualityWarnings);
+    }
 
     let savedPath = "";
     try {
@@ -207,7 +212,9 @@ export async function runPublishJob(
       });
     }
 
-    const preview = previewFromHtml(article.html);
+    let contentPreview = previewFromHtml(article.html);
+    let htmlForPublish = article.html;
+    let featuredMediaId: number | undefined;
 
     if (!env.wpEnabled) {
       logger.info(
@@ -225,7 +232,7 @@ export async function runPublishJob(
         keyword,
         title: article.title,
         excerpt: article.excerpt,
-        contentPreview: preview,
+        contentPreview,
         localHtmlPath: savedPath || undefined,
       });
       recordPublishSuccess(account.id, now);
@@ -233,14 +240,33 @@ export async function runPublishJob(
     }
 
     const wp = await createWordPressHttpClient(env);
+    const afterMedia = await uploadProductImagesAndReplaceInHtml(
+      wp,
+      products,
+      representative,
+      htmlForPublish,
+      logger,
+    );
+    htmlForPublish = afterMedia.html;
+    if (afterMedia.featuredMediaId !== undefined) {
+      featuredMediaId = afterMedia.featuredMediaId;
+    }
+    if (htmlForPublish !== article.html) {
+      contentPreview = previewFromHtml(htmlForPublish);
+    }
+
+    htmlForPublish = prepareWordPressPostContent(htmlForPublish);
+    contentPreview = previewFromHtml(htmlForPublish);
+
     const created = await createWordPressPost(
       wp,
       logger,
       {
         title: article.title,
-        content: article.html,
+        content: htmlForPublish,
         excerpt: article.excerpt,
         status: env.wpPostStatus,
+        featuredMediaId,
       },
       keyword,
     );
@@ -275,7 +301,7 @@ export async function runPublishJob(
       keyword,
       title: created.title,
       excerpt: article.excerpt,
-      contentPreview: preview,
+      contentPreview,
       postId: created.id,
       postUrl: created.url,
       localHtmlPath: savedPath || undefined,

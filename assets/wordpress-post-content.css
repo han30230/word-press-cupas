@@ -1,0 +1,300 @@
+/**
+ * WordPress.com(유료)·자체 호스팅: 모양 » 사용자 정의하기 » 추가 CSS 에 붙여 넣기.
+ * 무료 플랜은 추가 CSS 불가 — 앱이 본문에 차분한 인라인 style 을 넣습니다.
+ * 전역만 쓰려면: WP_ARTICLE_INLINE_STYLES=false
+ */
+
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
+:root {
+  --cupas-content-max: min(44rem, 100%);
+  --cupas-ink: #1e293b;
+  --cupas-ink-soft: #334155;
+  --cupas-muted: #64748b;
+  --cupas-line: #e2e8f0;
+  --cupas-accent: #0f766e;
+  --cupas-radius: 12px;
+}
+
+.entry-content .post,
+.wp-block-post-content .post,
+.post.post {
+  font-family: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  color: var(--cupas-ink);
+  font-size: 1.05rem;
+  line-height: 1.75;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
+  max-width: var(--cupas-content-max);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.post *,
+.post *::before,
+.post *::after {
+  box-sizing: border-box;
+}
+
+.post p {
+  margin: 0 0 1em;
+  color: var(--cupas-ink-soft);
+}
+
+.post strong {
+  color: #0f172a;
+  font-weight: 650;
+}
+
+.post a:not(.post-cta-card a):not(.post-cta-btn) {
+  color: var(--cupas-accent);
+  text-underline-offset: 0.15em;
+}
+
+.post h2 {
+  font-size: clamp(1.2rem, 2.6vw, 1.42rem);
+  font-weight: 800;
+  margin: 2.1rem 0 0.7rem;
+  color: #0f172a;
+  line-height: 1.32;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--cupas-accent);
+  letter-spacing: -0.02em;
+}
+
+.post h2:first-of-type {
+  margin-top: 0.2rem;
+}
+
+.post h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 1.4rem 0 0.45rem;
+  color: #1e293b;
+  line-height: 1.4;
+}
+
+.post hr.post-divider {
+  border: 0;
+  height: 1px;
+  margin: 1.75rem 0;
+  background: var(--cupas-line);
+}
+
+.post .post-disclosure {
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.6;
+  padding: 0.85rem 1rem;
+  margin: 0 0 1.25rem;
+  background: #f8fafc;
+  border: 1px solid var(--cupas-line);
+  border-radius: 10px;
+  border-left: 3px solid #64748b;
+}
+
+.post .post-hero {
+  margin: 1.2rem 0 1.4rem;
+  background: #fff;
+  border: 1px solid var(--cupas-line);
+  border-radius: var(--cupas-radius);
+  overflow: hidden;
+}
+
+.post .post-hero img,
+.post .hero-img img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+.post .img-cap {
+  font-size: 0.875rem;
+  color: var(--cupas-muted);
+  margin: 0.5rem 0 0.65rem;
+  line-height: 1.5;
+}
+
+.post .post-key-summary {
+  border: 1px solid var(--cupas-line);
+  border-radius: var(--cupas-radius);
+  padding: 1.1rem 1.2rem;
+  margin: 1.3rem 0;
+  background: #fafafa;
+}
+
+.post .post-toc {
+  margin: 1.25rem 0;
+  padding: 1rem 1.2rem 1.05rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--cupas-radius);
+  border-left: 4px solid var(--cupas-accent);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.post .post-toc > p:first-child {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cupas-accent);
+}
+
+.post .post-toc > p:first-child strong {
+  font-size: 1.05em;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.post .post-toc ol {
+  margin: 0.35rem 0 0;
+  padding: 0.5rem 0 0 1.45rem;
+  line-height: 1.75;
+  color: var(--cupas-ink-soft);
+  font-size: 0.98rem;
+  font-weight: 500;
+}
+
+.post .post-toc li {
+  margin: 0.3rem 0;
+}
+
+.post .post-key-summary ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.post .post-pros {
+  border-radius: var(--cupas-radius);
+  padding: 1.1rem 1.2rem;
+  margin: 1.1rem 0;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.post .post-cons {
+  border-radius: var(--cupas-radius);
+  padding: 1.1rem 1.2rem;
+  margin: 1.1rem 0;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.post .post-reco-pair {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.post .post-reco-yes {
+  border-radius: var(--cupas-radius);
+  padding: 1.1rem 1.15rem;
+  margin: 0.85rem 0;
+  background: #f8fafc;
+  border: 1px solid var(--cupas-line);
+  border-top: 3px solid var(--cupas-accent);
+}
+
+.post .post-reco-no {
+  border-radius: var(--cupas-radius);
+  padding: 1.1rem 1.15rem;
+  margin: 0.85rem 0;
+  background: #fefce8;
+  border: 1px solid #e7e5e4;
+  border-top: 3px solid #78716c;
+}
+
+.post .post-reco-pair .post-reco-yes,
+.post .post-reco-pair .post-reco-no {
+  margin: 0;
+}
+
+.post .post-checklist {
+  border: 1px solid var(--cupas-line);
+  border-radius: var(--cupas-radius);
+  padding: 1.1rem 1.2rem;
+  margin: 1.3rem 0;
+  background: #fff;
+}
+
+.post .post-checklist ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.post .post-cta-card {
+  border-radius: var(--cupas-radius);
+  padding: 1.2rem 1.25rem;
+  margin: 1.65rem 0;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+.post .post-cta-card a,
+.post .post-cta-card .post-cta-btn {
+  display: inline-block;
+  margin-top: 0.35rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none !important;
+  color: #fff !important;
+  background: var(--cupas-accent);
+  border: 1px solid #0d9488;
+}
+
+.post .table-wrap {
+  overflow-x: auto;
+  margin: 1.35rem 0;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.post table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92em;
+  margin: 0;
+}
+
+.post thead th {
+  background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: #0f172a;
+  font-weight: 800;
+  text-align: left;
+  border: 1px solid #cbd5e1;
+  padding: 0.72rem 0.85rem;
+  font-size: 0.95em;
+}
+
+.post tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.post th,
+.post td {
+  border: 1px solid var(--cupas-line);
+  padding: 0.65rem 0.75rem;
+  vertical-align: top;
+}
+
+@media (max-width: 640px) {
+  .entry-content .post,
+  .wp-block-post-content .post {
+    font-size: 1rem;
+  }
+
+  .post .post-cta-card a,
+  .post .post-cta-card .post-cta-btn {
+    display: block;
+    text-align: center;
+  }
+}

@@ -18,6 +18,26 @@ export interface RunReportEntry {
   error?: string;
 }
 
+const KST_TIMEZONE = "Asia/Seoul";
+
+/**
+ * toISOString()으로 저장된 시각(UTC)을 대시보드에 한국(UTC+9)으로 표시.
+ */
+function formatKstFromIso(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString("ko-KR", {
+    timeZone: KST_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -90,7 +110,7 @@ function regenerateDashboard(dir: string): void {
             ? escapeHtml(r.localHtmlPath)
             : "—";
       return `<tr>
-  <td>${escapeHtml(r.at)}</td>
+  <td title="${escapeHtml(r.at)}">${escapeHtml(formatKstFromIso(r.at))}</td>
   <td>${status}${acc}</td>
   <td>${escapeHtml(r.keyword ?? "—")}</td>
   <td>${escapeHtml(r.title ?? "—")}</td>
@@ -130,7 +150,7 @@ function regenerateDashboard(dir: string): void {
   <table>
     <thead>
       <tr>
-        <th>시각(UTC)</th>
+        <th>시각(한국 KST)</th>
         <th>결과 · 계정</th>
         <th>키워드</th>
         <th>제목</th>

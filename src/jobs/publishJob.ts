@@ -255,7 +255,7 @@ export async function runPublishJob(
       contentPreview = previewFromHtml(htmlForPublish);
     }
 
-    htmlForPublish = prepareWordPressPostContent(htmlForPublish);
+    htmlForPublish = prepareWordPressPostContent(htmlForPublish, products);
     contentPreview = previewFromHtml(htmlForPublish);
 
     const created = await createWordPressPost(

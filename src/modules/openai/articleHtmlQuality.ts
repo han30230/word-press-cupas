@@ -66,6 +66,9 @@ function isBannedHeadingText(t: string): boolean {
   if (s.length <= 14) {
     if (/^(특징|장점|마무리|결론|체험담)$/i.test(s)) return true;
   }
+  if (/^(장점|단점|아쉬운\s*점|추천|비추천|체크리스트)$/i.test(s)) {
+    return true;
+  }
   return false;
 }
 
@@ -122,11 +125,43 @@ function firstImageSurroundedByParagraphsIssue(html: string): string | null {
   return issues.length ? issues.join(" / ") : null;
 }
 
+function disclosureFirstInPostIssue(html: string): string | null {
+  const m = /<div\b[^>]*\bclass\s*=\s*["'][^"']*\bpost\b[^"']*["'][^>]*>/i.exec(html);
+  if (!m || m.index === undefined) return null;
+  const innerStart = m.index + m[0].length;
+  const win = html.slice(innerStart, innerStart + 720);
+  const discIdx = win.search(/\bpost-disclosure\b/);
+  if (discIdx < 0) return null;
+  const beforeDisc = win.slice(0, discIdx);
+  if (
+    /\bpost-spotlight\b/.test(beforeDisc) ||
+    /\bpost-lead\b/.test(beforeDisc) ||
+    /\bpost-hero\b/.test(beforeDisc)
+  ) {
+    return "파트너스 고지(post-disclosure)가 본문 첫 블록이 아님(고지를 맨 위에 두는 것 권장)";
+  }
+  return null;
+}
+
+function firstDivBlockStats(
+  html: string,
+  className: string,
+): { plainLen: number; pCount: number } | null {
+  const esc = className.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`<div\\b[^>]*\\b${esc}\\b[^>]*>([\\s\\S]*?)</div>`, "i");
+  const m = re.exec(html);
+  if (!m) return null;
+  const inner = m[1];
+  const plainLen = koreanishCharCount(stripTags(inner));
+  const pCount = (inner.match(/<p\b/gi) || []).length;
+  return { plainLen, pCount };
+}
+
 export function getArticleHtmlQualityIssues(
   html: string,
   options?: { productUrl?: string; minChars?: number },
 ): string[] {
-  const minChars = options?.minChars ?? 5200;
+  const minChars = options?.minChars ?? 6500;
   const productUrl = options?.productUrl?.trim() ?? "";
   const issues: string[] = [];
   const plain = stripTags(html);
@@ -148,10 +183,20 @@ export function getArticleHtmlQualityIssues(
 
   if (!/<table\b/i.test(html)) {
     issues.push("비교 표(<table>) 없음(필수 1개)");
+  } else if (
+    /<th\b[^>]*>[\s\S]*냉방\s*효율/i.test(html) &&
+    /책상|컴퓨터\s*책상|데스크|테이블/i.test(stripTags(html))
+  ) {
+    issues.push(
+      "표에 '냉방 효율' 열이 있으나 본문 주제가 책상·데스크로 보일 수 있음(열 이름을 주제에 맞게 바꾸는 것 권장)",
+    );
   }
 
   if (!html.includes(C.disclosure)) {
     issues.push(`파트너스 고지 블록(class="${C.disclosure}") 없음`);
+  } else {
+    const discOrder = disclosureFirstInPostIssue(html);
+    if (discOrder) issues.push(discOrder);
   }
 
   if (!html.includes(C.keySummary)) {
@@ -164,26 +209,81 @@ export function getArticleHtmlQualityIssues(
 
   if (!html.includes(C.pros)) {
     issues.push(`장점 블록(class="${C.pros}") 없음`);
+  } else if (/<h3\b[^>]*\bclass\s*=\s*["'][^"']*\bpost-pros\b/i.test(html)) {
+    issues.push(`장점: div.${C.pros} 래퍼 대신 h3에 클래스가 붙은 것으로 보임(블록 구조 권장)`);
+  } else {
+    const st = firstDivBlockStats(html, C.pros);
+    if (st) {
+      if (st.plainLen < 200) {
+        issues.push(
+          `장점 블록 본문이 약 ${st.plainLen}자로 얇음(구체 서술·문단 확장 권장, 목표 220자 이상)`,
+        );
+      }
+      if (st.pCount < 2) {
+        issues.push(`장점 블록 <p>가 ${st.pCount}개뿐임(2개 이상 권장)`);
+      }
+    }
   }
   if (!html.includes(C.cons)) {
     issues.push(`아쉬운 점 블록(class="${C.cons}") 없음`);
+  } else if (/<h3\b[^>]*\bclass\s*=\s*["'][^"']*\bpost-cons\b/i.test(html)) {
+    issues.push(`아쉬운 점: div.${C.cons} 래퍼 대신 h3에 클래스가 붙은 것으로 보임(블록 구조 권장)`);
+  } else {
+    const st = firstDivBlockStats(html, C.cons);
+    if (st) {
+      if (st.plainLen < 160) {
+        issues.push(
+          `아쉬운 점 블록 본문이 약 ${st.plainLen}자로 얇음(균형 있는 서술 확장 권장)`,
+        );
+      }
+      if (st.pCount < 2) {
+        issues.push(`아쉬운 점 블록 <p>가 ${st.pCount}개뿐임(2개 이상 권장)`);
+      }
+    }
   }
 
   if (!html.includes(C.recoYes)) {
     issues.push(`추천 대상 블록(class="${C.recoYes}") 없음`);
+  } else {
+    const st = firstDivBlockStats(html, C.recoYes);
+    if (st && st.pCount < 2) {
+      issues.push(`추천 블록 <p>가 ${st.pCount}개뿐임(2개 이상 권장)`);
+    }
+    if (st && st.plainLen < 120) {
+      issues.push(`추천 블록 텍스트가 약 ${st.plainLen}자로 얇음`);
+    }
   }
   if (!html.includes(C.recoNo)) {
     issues.push(`비추천·아쉬울 사람 블록(class="${C.recoNo}") 없음`);
+  } else {
+    const st = firstDivBlockStats(html, C.recoNo);
+    if (st && st.pCount < 2) {
+      issues.push(`비추천 블록 <p>가 ${st.pCount}개뿐임(2개 이상 권장)`);
+    }
+    if (st && st.plainLen < 120) {
+      issues.push(`비추천 블록 텍스트가 약 ${st.plainLen}자로 얇음`);
+    }
   }
 
   if (!html.includes(C.checklist)) {
     issues.push(`구매 전 체크포인트(class="${C.checklist}") 없음`);
   }
 
-  const ctaCards = countClassOccurrences(html, C.ctaCard);
-  if (ctaCards < 2) {
+  const spotlights = countClassOccurrences(html, C.spotlight);
+  if (spotlights < 2) {
     issues.push(
-      `카드형 CTA(class="${C.ctaCard}")가 ${ctaCards}개 — 중간·하단 각 1개(총 2개) 권장`,
+      `그라데이션 CTA(class="${C.spotlight}")가 ${spotlights}개 — 레퍼런스와 같이 상단·하단 각 1개(총 2개) 권장`,
+    );
+  }
+
+  if (countClassOccurrences(html, C.callout) < 1) {
+    issues.push(`팁 콜아웃(class="${C.callout}") 없음(파란 왼쪽 바 박스 1개 권장)`);
+  }
+
+  const miniCards = countClassOccurrences(html, C.miniCard);
+  if (!html.includes(C.cardGrid) || miniCards < 3) {
+    issues.push(
+      `3열 비교 카드(class="${C.cardGrid}" + "${C.miniCard}"×3)가 없거나 카드 수가 부족함(현재 미니카드 ${miniCards}개)`,
     );
   }
 
@@ -194,7 +294,15 @@ export function getArticleHtmlQualityIssues(
   if (productUrl) {
     const ctaN = countProductUrlInAHref(html, productUrl);
     if (ctaN < 2) {
-      issues.push(`productUrl이 <a href>에 ${ctaN}회만 등장(중간·하단 CTA 권장: 2회 이상)`);
+      issues.push(
+        `productUrl이 <a href>에 ${ctaN}회만 등장(그라데이션 CTA 버튼 등 2회 이상 권장)`,
+      );
+    }
+    const spotlightBtns = countClassOccurrences(html, C.spotlightBtn);
+    if (spotlightBtns < 2 && ctaN < 3) {
+      issues.push(
+        `class="${C.spotlightBtn}" 링크가 ${spotlightBtns}개 — 상·하단 배너 각각에 버튼 클래스를 쓰면 앱이 스타일을 맞춥니다`,
+      );
     }
   } else {
     issues.push("productUrl이 없어 CTA 링크 횟수를 확인하지 못함");

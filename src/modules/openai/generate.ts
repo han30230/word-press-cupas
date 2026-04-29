@@ -6,10 +6,11 @@ import {
   type ArticlePromptInput,
 } from "./prompts/articlePrompt.js";
 import { getArticleHtmlQualityIssues } from "./articleHtmlQuality.js";
-import { stripCodeFencesFromHtmlString } from "./articlePostProcess.js";
+import { stripCodeFencesFromHtmlString, convertStrayMarkdownBoldInHtml } from "./articlePostProcess.js";
 import { stripStyleTagsFromHtml } from "../../utils/sanitize.js";
 import { isArticleInlineStylesEnabled } from "../../utils/articleStylePolicy.js";
 import { embedInlineArticleVisualStyles } from "../wordpress/inlineArticleStyles.js";
+import { linkKnownProductNamesInTables } from "./linkProductUrlsInTables.js";
 
 export interface GeneratedArticle {
   title: string;
@@ -159,14 +160,16 @@ export async function generateArticleHtml(params: {
 
   let h = html.trim();
   h = stripCodeFencesFromHtmlString(h);
+  h = convertStrayMarkdownBoldInHtml(h);
   h = stripStyleTagsFromHtml(h);
+  h = linkKnownProductNamesInTables(h, params.products);
   if (isArticleInlineStylesEnabled()) {
     h = embedInlineArticleVisualStyles(h);
   }
 
   const qualityWarnings = getArticleHtmlQualityIssues(h, {
     productUrl: params.representative.productUrl,
-    minChars: 5200,
+    minChars: 6500,
   });
   if (qualityWarnings.length > 0) {
     console.warn(

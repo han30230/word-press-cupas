@@ -1,7 +1,8 @@
-import type { NormalizedProduct } from "../coupang/types.js";
 import { sanitizePostHtml } from "../../utils/sanitize.js";
 import { isArticleInlineStylesEnabled } from "../../utils/articleStylePolicy.js";
 import { embedInlineArticleVisualStyles } from "../wordpress/inlineArticleStyles.js";
+import type { NormalizedProduct } from "../coupang/types.js";
+import { linkKnownProductNamesInTables } from "./linkProductUrlsInTables.js";
 
 function escAttr(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
@@ -17,13 +18,24 @@ export function stripCodeFencesFromHtmlString(html: string): string {
   return s.trim();
 }
 
+/** 모델이 ** … ** 마크다운을 HTML 안에 남긴 경우 <strong> 으로 치환합니다. */
+export function convertStrayMarkdownBoldInHtml(html: string): string {
+  return html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+
 /**
  * WordPress REST `content`로 보내기 직전: style·script·위험 on* 제거 후 img 속성 보강.
  * WordPress.com 무료 플랜은 추가 CSS 불가 → 기본으로 인라인 style 주입(embedInlineArticleVisualStyles).
  * 유료·자체 호스팅에서 끄려면 WP_ARTICLE_INLINE_STYLES=false
  */
-export function prepareWordPressPostContent(html: string): string {
+export function prepareWordPressPostContent(
+  html: string,
+  products?: NormalizedProduct[] | undefined,
+): string {
   let s = sanitizePostHtml(html.trim());
+  if (products?.length) {
+    s = linkKnownProductNamesInTables(s, products);
+  }
   if (isArticleInlineStylesEnabled()) {
     s = embedInlineArticleVisualStyles(s);
   }
